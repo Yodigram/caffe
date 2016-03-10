@@ -43,6 +43,22 @@ Net<Dtype>::Net(const string& param_file, Phase phase,
 }
 
 template <typename Dtype>
+size_t Net<Dtype>::MemoryUsed() const
+{
+	size_t result = 0;
+
+	for (unsigned int layer_id = 0; layer_id < layers_.size(); ++layer_id)
+	{
+		for (unsigned int top_id = 0; top_id < top_vecs_[layer_id].size(); ++top_id)
+		{
+			result += top_vecs_[layer_id][top_id]->count();
+		}
+	}
+
+	return result * sizeof(Dtype);
+}
+
+template <typename Dtype>
 void Net<Dtype>::Init(const NetParameter& in_param) {
   // Set phase from the state.
   phase_ = in_param.state().phase();
