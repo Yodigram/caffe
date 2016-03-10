@@ -31,6 +31,11 @@ class Net {
   /// @brief Initialize a network with a NetParameter.
   void Init(const NetParameter& param);
 
+  /*
+   * Show the memory used by the net
+   */
+  size_t MemoryUsed() const;
+
   /**
    * @brief Run Forward with the input Blob%s already fed separately.
    *
