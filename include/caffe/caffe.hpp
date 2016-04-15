@@ -18,5 +18,6 @@
 #include "caffe/util/io.hpp"
 #include "caffe/util/upgrade_proto.hpp"
 #include "caffe/vision_layers.hpp"
+#include "caffe/yodi_layers.hpp"
 
 #endif  // CAFFE_CAFFE_HPP_
