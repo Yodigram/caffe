@@ -182,8 +182,8 @@ namespace caffe
 						const int t_h_11        = (int) std::floor(getTH(h + 1, w + 1));
 						Dtype     valueDistH_11 = (bottomDataMap[mapBlob->offset(n, t_h_11, 0, 0)] + 1) * 255 / 2;
 
-						const float h_d = (h % _blockSize) / _blockSize;
-						const float w_d = (w % _blockSize) / _blockSize;
+						const float h_d = float(h % _blockSize) / float(_blockSize);
+						const float w_d = float(w % _blockSize) / float(_blockSize);
 
 						valueDistH = valueDistH_00 * (1 - h_d) * (1 - w_d) +
 									 valueDistH_10 * h_d * (1 - w_d) +
