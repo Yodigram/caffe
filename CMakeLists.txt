@@ -42,6 +42,14 @@ caffe_option(ALLOW_LMDB_NOLOCK "Allow MDB_NOLOCK when reading LMDB files (only i
 # ---[ Dependencies
 include(cmake/Dependencies.cmake)
 
+# ---[ OpenMP
+FIND_PACKAGE( OpenMP REQUIRED)
+if(OPENMP_FOUND)
+  message("OPENMP FOUND")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
+
 # ---[ Flags
 if(UNIX OR APPLE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall")
