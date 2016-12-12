@@ -3,7 +3,6 @@
 #include <caffe/caffe.hpp>
 
 #include "caffe/blob.hpp"
-#include "caffe/vision_layers.hpp"
 
 namespace caffe
 {

@@ -8,7 +8,6 @@
 #endif
 
 #include "caffe/blob.hpp"
-#include "caffe/vision_layers.hpp"
 
 namespace caffe
 {
