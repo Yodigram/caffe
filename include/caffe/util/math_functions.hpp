@@ -83,6 +83,14 @@ void caffe_rng_gaussian(const int n, const Dtype mu, const Dtype sigma,
                         Dtype* r);
 
 template <typename Dtype>
+void caffe_rng_gaussian_add(const int n, const Dtype mu, const Dtype sigma,
+                        Dtype* r);
+
+template <typename Dtype>
+void caffe_rng_gaussian_mul(const int n, const Dtype mu, const Dtype sigma,
+                        Dtype* r);
+
+template <typename Dtype>
 void caffe_rng_bernoulli(const int n, const Dtype p, int* r);
 
 template <typename Dtype>

@@ -5,14 +5,13 @@
 #include <utility>
 #include <vector>
 
+
 #include "caffe/blob.hpp"
-#include "caffe/common.hpp"
-#include "caffe/common_layers.hpp"
-#include "caffe/data_layers.hpp"
+#include "caffe/caffe.hpp"
 #include "caffe/layer.hpp"
-#include "caffe/loss_layers.hpp"
-#include "caffe/neuron_layers.hpp"
+#include "caffe/common.hpp"
 #include "caffe/proto/caffe.pb.h"
+#include "caffe/layers/neuron_layer.hpp"
 
 #ifdef USE_OPENCV
 #include <opencv2/core/core.hpp>
@@ -23,7 +22,8 @@ namespace caffe {
      * Warp Layer
      */
     template<typename Dtype>
-    class UnwarpLayer : public Layer<Dtype>
+    class UnwarpLayer :
+    		public Layer<Dtype>
     {
         public:
             explicit UnwarpLayer(const LayerParameter &param)
@@ -65,7 +65,8 @@ namespace caffe {
      * Splitter Layer
      */
     template<typename Dtype>
-    class SplitterLayer : public Layer<Dtype>
+    class SplitterLayer :
+    		public Layer<Dtype>
     {
         public:
             explicit SplitterLayer(const LayerParameter &param)
@@ -91,6 +92,58 @@ namespace caffe {
     };
 
 
+    /////////////////////////////////////////////////////////////////////////
+
+    /*
+     * Splitter Layer
+     */
+    template<typename Dtype>
+    class VisionTransformationLayer :
+    		public NeuronLayer<Dtype>
+    {
+        public:
+            explicit VisionTransformationLayer(const LayerParameter &param)
+                    : NeuronLayer< Dtype>(param) { }
+
+            virtual void LayerSetUp(
+            		const vector<Blob < Dtype> *> &bottom,
+					const vector<Blob < Dtype> *> &top);
+            virtual void Reshape(
+            		const vector<Blob < Dtype> *> &bottom,
+					const vector<Blob < Dtype> *> &top);
+            virtual inline const char *type() const { return "VisionTransformation"; }
+
+            virtual inline int MinTopBlobs() const { return 1; }
+            virtual inline int MaxTopBlobs() const { return 1; }
+
+        protected:
+            virtual void Forward_cpu(
+            		const vector<Blob < Dtype> *> &bottom,
+					const vector<Blob < Dtype> *> &top);
+            virtual void Backward_cpu(
+            		const vector<Blob < Dtype> *> &top,
+					const vector<bool> &propagate_down,
+					const vector<Blob < Dtype> *> &bottom);
+            //---- noise in the scale of the image
+            float m_noiseStd;
+            float m_noiseMean;
+            //---- sub pixel noise
+            float m_noiseStdSmall;
+            //---- rotation min and max angle
+            float m_rotateMinAngle;
+            float m_rotateMaxAngle;
+            Dtype m_rotateFillValue;
+            //----
+            float m_rescaleProbability;
+            //---- Constant multiplier (whole image)
+            Dtype m_constantMultiplierMean;
+            Dtype m_constantMultiplierStd;
+            //---- per pixel multiplier
+            Dtype m_perPixelMultiplierMean;
+            Dtype m_perPixelMultiplierStd;
+            //---- interpolation method
+            int m_interpolationMethod;
+    };
 }  // namespace caffe
 
 #endif  // CAFFE_YODI_LAYERS_HPP_
