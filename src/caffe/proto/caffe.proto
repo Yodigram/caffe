@@ -403,6 +403,7 @@ message LayerParameter {
   optional ThresholdParameter threshold_param = 128;
   optional TileParameter tile_param = 138;
   optional WindowDataParameter window_data_param = 129;
+  optional VisionTransformationParameter vision_transformation_param = 147;
 }
 
 // Message that stores parameters used to apply transformation
@@ -1201,6 +1202,20 @@ message SPPParameter {
     CUDNN = 2;
   }
   optional Engine engine = 6 [default = DEFAULT];
+}
+
+message VisionTransformationParameter {
+   optional float noise_mean = 1 [default = 0];
+   optional float noise_std = 2 [default = 0.1];
+   optional float noise_std_small = 3 [default = 0.001];
+   optional float rotate_min_angle = 4 [default = -10];
+   optional float rotate_max_angle = 5 [default = 10];
+   optional float rotate_fill_value = 6 [default = 0];
+   optional float per_pixel_multiplier_mean = 7 [default = 1];
+   optional float per_pixel_multiplier_std = 8 [default = 0];
+   optional float rescale_probability = 9 [default = 0];
+   optional float constant_multiplier_mean = 10 [default = 1];
+   optional float constant_multiplier_std = 11 [default = 0];
 }
 
 // DEPRECATED: use LayerParameter.
