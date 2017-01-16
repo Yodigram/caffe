@@ -133,7 +133,9 @@ namespace caffe {
             float m_rotateMinAngle;
             float m_rotateMaxAngle;
             Dtype m_rotateFillValue;
-            //----
+            //---- resizing
+            float m_scaleMean;
+            float m_scaleStd;
             float m_rescaleProbability;
             //---- Constant multiplier (whole image)
             Dtype m_constantMultiplierMean;
@@ -143,6 +145,12 @@ namespace caffe {
             Dtype m_perPixelMultiplierStd;
             //---- interpolation method
             int m_interpolationMethod;
+            //---- Color space shifting
+            Dtype m_constantMultiplierColorMean;
+            Dtype m_constantMultiplierColorStd;
+            //---- Value min max cap
+            Dtype m_valueCapMin;
+            Dtype m_valueCapMax;
     };
 }  // namespace caffe
 
