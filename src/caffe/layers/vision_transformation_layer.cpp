@@ -346,11 +346,7 @@ namespace caffe
 	}
 
 	//==================================================================
-
-	#ifdef CPU_ONLY
-	STUB_GPU(VisionTransformationLayer);
-	#endif
-
+	
 	INSTANTIATE_CLASS(VisionTransformationLayer);
 	REGISTER_LAYER_CLASS(VisionTransformation);
 };
