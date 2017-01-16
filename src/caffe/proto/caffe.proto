@@ -1264,6 +1264,16 @@ message VisionTransformationParameter {
    optional float rescale_probability = 9 [default = 0];
    optional float constant_multiplier_mean = 10 [default = 1];
    optional float constant_multiplier_std = 11 [default = 0];
+   // zoom in during rotating
+   optional float scale_mean = 12 [default = 1];
+   optional float scale_std = 13 [default = 0];
+   // per channel multiplier (shifts colors)
+   optional float constant_multiplier_color_mean = 14 [default = 1];
+   optional float constant_multiplier_color_std = 15 [default = 0];
+   // min max capping
+   optional float value_cap_min = 16 [default = 0];
+   optional float value_cap_max = 17 [default = 0];
+   
 }
 
 // DEPRECATED: use LayerParameter.
