@@ -422,6 +422,7 @@ message LayerParameter {
   optional TileParameter tile_param = 138;
   optional WindowDataParameter window_data_param = 129;
   optional VisionTransformationParameter vision_transformation_param = 147;
+  optional SlidingHistogramParameter sliding_histogram_param = 148;
 }
 
 // Message that stores parameters used to apply transformation
@@ -1273,7 +1274,19 @@ message VisionTransformationParameter {
    // min max capping
    optional float value_cap_min = 16 [default = 0];
    optional float value_cap_max = 17 [default = 0];
-   
+}
+
+message SlidingHistogramParameter {
+  optional uint32 kernel_size = 1; // The kernel size (square)
+  optional uint32 kernel_h = 2; // The kernel height
+  optional uint32 kernel_w = 3; // The kernel width
+  optional uint32 stride = 4 [default = 1]; // The stride (equal in Y, X)
+  optional uint32 stride_h = 5; // The stride height
+  optional uint32 stride_w = 6; // The stride width
+  optional uint32 bins = 7 [default = 32];
+  optional float min = 8 [default = -1];
+  optional float max = 9 [default = 1];
+  optional float diffuse = 10 [default = 0];
 }
 
 // DEPRECATED: use LayerParameter.

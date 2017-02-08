@@ -53,7 +53,7 @@ class Blob {
   void ReshapeLike(const Blob& other);
   inline string shape_string() const {
     ostringstream stream;
-    for (int i = 0; i < shape_.size(); ++i) {
+    for (size_t i = 0; i < shape_.size(); ++i) {
       stream << shape_[i] << " ";
     }
     stream << "(" << count_ << ")";
@@ -161,6 +161,12 @@ class Blob {
     CHECK_GE(width(), 0);
     CHECK_LE(w, width());
     return ((n * channels() + c) * height() + h) * width() + w;
+  }
+
+  // offset with all checks removed, use at your own risk
+  inline int offset_unchecked(
+		  const int n, const int c = 0, const int h = 0, const int w = 0) const {
+    return ((n * shape_[1] + c) * shape_[2] + h) * shape_[3] + w;
   }
 
   inline int offset(const vector<int>& indices) const {

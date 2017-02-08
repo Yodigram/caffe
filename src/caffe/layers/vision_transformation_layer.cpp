@@ -53,27 +53,6 @@ namespace caffe
 	{
 		NeuronLayer<Dtype>::LayerSetUp(bottom, top);
 
-        m_noiseStd = Dtype(0.1f);
-        m_noiseMean = Dtype(0.0f);
-        m_noiseStdSmall = Dtype(1.0f / 255.0f);
-        m_rotateMinAngle = Dtype(-10.0f);
-        m_rotateMaxAngle = Dtype(10.0f);
-        m_rotateFillValue = Dtype(0.0f);
-        m_interpolationMethod = cv::INTER_LINEAR;
-        m_perPixelMultiplierMean = Dtype(1.0f);
-        m_perPixelMultiplierStd = Dtype(0.0f);
-        m_rescaleProbability = 0.0f;
-        m_constantMultiplierMean = Dtype(1.0f);
-        m_constantMultiplierStd = Dtype(0.0f);
-
-        m_scaleMean = 1.0f;
-        m_scaleStd = 0.0f;
-        m_constantMultiplierColorMean = Dtype(1.0f);
-        m_constantMultiplierColorStd = Dtype(0.0f);
-
-        m_valueCapMin = Dtype(0.0f);
-        m_valueCapMax = Dtype(0.0f);
-
         if (this->layer_param_.has_vision_transformation_param() == true)
         {
         	VisionTransformationParameter params = this->layer_param_.vision_transformation_param();
