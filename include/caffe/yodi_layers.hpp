@@ -102,6 +102,7 @@ namespace caffe
     		public NeuronLayer<Dtype>
     {
         public:
+    		//----------------------------------
             explicit
 			VisionTransformationLayer(const LayerParameter &param)
             	: NeuronLayer< Dtype>(param)
@@ -122,35 +123,43 @@ namespace caffe
                 m_rescaleProbability = 0.0f;
                 m_constantMultiplierMean = Dtype(1.0f);
                 m_constantMultiplierStd = Dtype(0.0f);
-
                 m_scaleMean = 1.0f;
                 m_scaleStd = 0.0f;
-                m_constantMultiplierColorMean = Dtype(1.0f);
-                m_constantMultiplierColorStd = Dtype(0.0f);
-
-                m_valueCapMin = Dtype(0.0f);
-                m_valueCapMax = Dtype(0.0f);
+                m_constantMultiplierColorMean = Dtype(1);
+                m_constantMultiplierColorStd = Dtype(0);
+                m_valueCapMin = Dtype(0);
+                m_valueCapMax = Dtype(0);
+                m_maxoutPassthroughProbabilityIteration = 0;
+                m_iteration = 0;
 			}
-
+            //----------------------------------
+            virtual ~VisionTransformationLayer(){}
+            //----------------------------------
             virtual void LayerSetUp(
             		const vector<Blob < Dtype> *> &bottom,
 					const vector<Blob < Dtype> *> &top);
+            //----------------------------------
             virtual void Reshape(
             		const vector<Blob < Dtype> *> &bottom,
 					const vector<Blob < Dtype> *> &top);
-            virtual inline const char *type() const { return "VisionTransformation"; }
-
+            //----------------------------------
+            virtual inline const char* type() const { return "VisionTransformation"; }
+            //----------------------------------
             virtual inline int MinTopBlobs() const { return 1; }
+            //----------------------------------
             virtual inline int MaxTopBlobs() const { return 1; }
-
+            //----------------------------------
         protected:
+            //----------------------------------
             virtual void Forward_cpu(
             		const vector<Blob < Dtype> *> &bottom,
 					const vector<Blob < Dtype> *> &top);
+            //----------------------------------
             virtual void Backward_cpu(
             		const vector<Blob < Dtype> *> &top,
 					const vector<bool> &propagate_down,
 					const vector<Blob < Dtype> *> &bottom);
+            //----------------------------------
             //---- noise in the scale of the image
             float m_noiseStd;
             float m_noiseMean;
@@ -178,6 +187,15 @@ namespace caffe
             //---- Value min max cap
             Dtype m_valueCapMin;
             Dtype m_valueCapMax;
+            //---- Passthrough probability
+            // Indicates the probability
+            // of just pushing the image without transformations
+            float m_passthroughProbability;
+            // indicates at which iteration the passthrough probabilit
+            // reaches its high
+            int m_maxoutPassthroughProbabilityIteration;
+
+            int m_iteration;
     };
 
     //==================================================================
@@ -204,9 +222,6 @@ namespace caffe
 					const vector<bool>& propagate_down,
 					const vector<Blob<Dtype>*>& bottom);
     		//----------------------------------
-    		virtual inline bool
-			reverse_dimensions() { return false; }
-    		//----------------------------------
     		Dtype m_min;
     		Dtype m_max;
     		int m_bins;
@@ -219,23 +234,29 @@ namespace caffe
     		Dtype m_multiplier;
     		// holds indices of mapping bottom value to top bin
     		Blob<int> m_idx_;
-    		Blob<int> m_counter;
     		Blob<int> m_distance;
     		//----------------------------------
     	public:
     		explicit SlidingHistogramLayer(const LayerParameter& param)
     			: Layer<Dtype>(param)
 			{
-    			m_bins = 128;
-    			m_min = Dtype(-1);
-    			m_max = Dtype(+1);
-    			m_kernel_h_ = 16;
-    			m_kernel_w_ = 16;
-    			m_stride_h_ = 8;
-    			m_stride_w_ = 8;
+    			m_bins = 0;
+    			m_min = Dtype(0);
+    			m_max = Dtype(0);
+    			m_kernel_h_ = 0;
+    			m_kernel_w_ = 0;
+    			m_stride_h_ = 0;
+    			m_stride_w_ = 0;
+    			m_height_ = 0;
+    			m_width_ = 0;
+    			m_channels_ = 0;
+    			m_result_height_ = 0;
+    			m_result_width_ = 0;
     			m_diffuseValue = Dtype(0);
-    			m_multiplier = (Dtype(m_bins - 1) / (m_max - m_min));
+    			m_multiplier = Dtype(0);
 			}
+    		//----------------------------------
+    		virtual ~SlidingHistogramLayer(){}
     		//----------------------------------
     		virtual void
 			LayerSetUp(
