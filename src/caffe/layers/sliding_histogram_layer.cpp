@@ -119,15 +119,9 @@ namespace caffe
 
 		top[0]->Reshape(
 				bottom[0]->num(),
-				bottom[0]->channels(),
-				m_result_height_ * m_result_width_,
-				m_bins);
-
-		m_counter.Reshape(
-				bottom[0]->num(),
-				bottom[0]->channels(),
-				m_result_height_ * m_result_width_,
-				m_bins);
+				bottom[0]->channels() * m_bins,
+				m_result_height_,
+				m_result_width_);
 
 	    m_idx_.Reshape(
 				bottom[0]->num(),
@@ -154,12 +148,10 @@ namespace caffe
 		Blob<Dtype>* top_blob = top[0];
 		Dtype* top_data = top_blob->mutable_cpu_data();
 		int* index_data = m_idx_.mutable_cpu_data();
-		int* counter_data = m_counter.mutable_cpu_data();
 		int* distance_data = m_distance.mutable_cpu_data();
 		const int num = bottom_blob->num();
 
 		// zero out top and indices
-		caffe_set(m_counter.count(), 0, counter_data);
 		caffe_set(m_idx_.count(), int(-999999), index_data);
 		caffe_set(top_blob->count(), m_diffuseValue, top_data);
 		caffe_set(m_distance.count(), int(m_kernel_w_ + m_kernel_h_), distance_data);
@@ -167,6 +159,9 @@ namespace caffe
 		#pragma omp parallel for
 		for (int n = 0; n < num; ++n)
 		{
+			// add this value to bins sto they dont need to be normalized
+			const Dtype value = (Dtype(1) - Dtype(m_bins) * m_diffuseValue) / Dtype(m_kernel_w_ * m_kernel_h_);
+
 			for (int c = 0; c < m_channels_; ++c)
 			{
 				const int offset = bottom_blob->offset_unchecked(n, c, 0, 0);
@@ -182,9 +177,9 @@ namespace caffe
 						const int wstart = std::max(pw * m_stride_w_, 0);
 						const int wend = std::min(wstart + m_kernel_w_, m_width_);
 						const int center_w = (wstart + wend) / 2;
-						const int histogram_index = ph * m_result_width_ + pw;
-						const int histogram_offset = top_blob->offset_unchecked(n, c, histogram_index, 0);
 
+						//--------------------
+						// run window and fill histogram
 						for (int h = hstart; h < hend; ++h)
 						{
 							const int distance_h = std::abs(h - center_h);
@@ -194,9 +189,13 @@ namespace caffe
 								const int distance_w = std::abs(w - center_w);
 								const int distance = distance_h + distance_w;
 								const int bottom_index = offset + h * m_width_ + w;
+								const int bin = bin_of_value(bottom_data[bottom_index]);
 								const int top_index =
-										histogram_offset +
-										bin_of_value(bottom_data[bottom_index]);
+										top_blob->offset_unchecked(
+												n,
+												c * m_bins + bin,
+												ph,
+												pw);
 
 								if (distance_data[bottom_index] > distance)
 								{
@@ -204,22 +203,8 @@ namespace caffe
 									index_data[bottom_index] = top_index;
 								}
 
-								top_data[top_index] += 1;
-								counter_data[top_index] += 1;
+								top_data[top_index] += value;
 							}
-						}
-
-						//-------------------- normalize bins
-						Dtype sum = 0;
-
-						for (int b = 0; b < m_bins; ++b)
-						{
-							sum += top_data[histogram_offset + b];
-						}
-
-						for (int b = 0; b < m_bins; ++b)
-						{
-							top_data[histogram_offset + b] /= sum;
 						}
 					}
 				}
@@ -243,20 +228,18 @@ namespace caffe
 		Blob<Dtype>* bottom_blob = bottom[0];
 		Dtype* bottom_diff = bottom_blob->mutable_cpu_diff();
 		Blob<Dtype>* top_blob = top[0];
+		const Dtype* top_data = top_blob->cpu_data();
 		const Dtype* top_diff = top_blob->cpu_diff();
 		const int* index_data = m_idx_.cpu_data();
-		const int* counter_data = m_counter.cpu_data();
 		const int num = bottom_blob->num();
 		const Dtype multiplier = m_height_ * m_width_ * m_channels_;
-		// zero bottom
-		caffe_set(bottom_blob->count(), Dtype(0), bottom_diff);
 
 		#pragma omp parallel for
 		for (int n = 0; n < num; ++n)
 		{
 			for (int c = 0; c < m_channels_; ++c)
 			{
-				const int offset = bottom_blob->offset_unchecked(n, c, 0, 0);
+				const int offset = bottom_blob->offset_unchecked(n, c);
 
 				for (int h = 0; h < m_height_; ++h)
 				{
@@ -264,8 +247,11 @@ namespace caffe
 					{
 						const int bottom_index = offset + h * m_width_ + w;
 						const int index = index_data[bottom_index];
-						const Dtype counter = Dtype(std::max(counter_data[index], 1));
-						bottom_diff[bottom_index] += (top_diff[index] / multiplier) / counter;
+						const Dtype counter =
+								std::max(
+										Dtype(top_data[index] * m_kernel_h_ * m_kernel_w_),
+										Dtype(1));
+						bottom_diff[bottom_index] = (top_diff[index] / multiplier) / counter;
 					}
 				}
 			}
@@ -276,4 +262,6 @@ namespace caffe
 
 	INSTANTIATE_CLASS(SlidingHistogramLayer);
 	REGISTER_LAYER_CLASS(SlidingHistogram);
+
+	//==================================================================
 };
