@@ -2,9 +2,8 @@
 #define CAFFE_YODI_LAYERS_HPP_
 
 #include <string>
-#include <utility>
 #include <vector>
-
+#include <utility>
 
 #include "caffe/blob.hpp"
 #include "caffe/caffe.hpp"
@@ -15,9 +14,12 @@
 
 #ifdef USE_OPENCV
 #include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #endif
 
-namespace caffe {
+namespace caffe
+{
+	//==================================================================
     /*
      * Warp Layer
      */
@@ -58,8 +60,7 @@ namespace caffe {
             #endif
     };
 
-
-    /////////////////////////////////////////////////////////////////////////
+    //==================================================================
 
     /*
      * Splitter Layer
@@ -91,8 +92,7 @@ namespace caffe {
             const vector<Blob < Dtype> *> &bottom);
     };
 
-
-    /////////////////////////////////////////////////////////////////////////
+    //==================================================================
 
     /*
      * Splitter Layer
@@ -102,28 +102,64 @@ namespace caffe {
     		public NeuronLayer<Dtype>
     {
         public:
-            explicit VisionTransformationLayer(const LayerParameter &param)
-                    : NeuronLayer< Dtype>(param) { }
-
+    		//----------------------------------
+            explicit
+			VisionTransformationLayer(const LayerParameter &param)
+            	: NeuronLayer< Dtype>(param)
+			{
+                m_noiseStd = Dtype(0.1f);
+                m_noiseMean = Dtype(0.0f);
+                m_noiseStdSmall = Dtype(1.0f / 255.0f);
+                m_rotateMinAngle = Dtype(-10.0f);
+                m_rotateMaxAngle = Dtype(10.0f);
+                m_rotateFillValue = Dtype(0.0f);
+#ifdef USE_OPENCV
+                m_interpolationMethod = cv::INTER_LINEAR;
+#else
+                m_interpolationMethod = 0;
+#endif
+                m_perPixelMultiplierMean = Dtype(1.0f);
+                m_perPixelMultiplierStd = Dtype(0.0f);
+                m_rescaleProbability = 0.0f;
+                m_constantMultiplierMean = Dtype(1.0f);
+                m_constantMultiplierStd = Dtype(0.0f);
+                m_scaleMean = 1.0f;
+                m_scaleStd = 0.0f;
+                m_constantMultiplierColorMean = Dtype(1);
+                m_constantMultiplierColorStd = Dtype(0);
+                m_valueCapMin = Dtype(0);
+                m_valueCapMax = Dtype(0);
+                m_maxoutPassthroughProbabilityIteration = 0;
+                m_iteration = 0;
+			}
+            //----------------------------------
+            virtual ~VisionTransformationLayer(){}
+            //----------------------------------
             virtual void LayerSetUp(
             		const vector<Blob < Dtype> *> &bottom,
 					const vector<Blob < Dtype> *> &top);
+            //----------------------------------
             virtual void Reshape(
             		const vector<Blob < Dtype> *> &bottom,
 					const vector<Blob < Dtype> *> &top);
-            virtual inline const char *type() const { return "VisionTransformation"; }
-
+            //----------------------------------
+            virtual inline const char* type() const { return "VisionTransformation"; }
+            //----------------------------------
             virtual inline int MinTopBlobs() const { return 1; }
+            //----------------------------------
             virtual inline int MaxTopBlobs() const { return 1; }
-
+            //----------------------------------
         protected:
+            //----------------------------------
             virtual void Forward_cpu(
             		const vector<Blob < Dtype> *> &bottom,
 					const vector<Blob < Dtype> *> &top);
+            //----------------------------------
             virtual void Backward_cpu(
             		const vector<Blob < Dtype> *> &top,
 					const vector<bool> &propagate_down,
 					const vector<Blob < Dtype> *> &bottom);
+            //----------------------------------
             //---- noise in the scale of the image
             float m_noiseStd;
             float m_noiseMean;
@@ -151,7 +187,116 @@ namespace caffe {
             //---- Value min max cap
             Dtype m_valueCapMin;
             Dtype m_valueCapMax;
+            //---- Passthrough probability
+            // Indicates the probability
+            // of just pushing the image without transformations
+            float m_passthroughProbability;
+            // indicates at which iteration the passthrough probabilit
+            // reaches its high
+            int m_maxoutPassthroughProbabilityIteration;
+
+            int m_iteration;
     };
+
+    //==================================================================
+
+    /**
+     * @brief Performs a histogram reduction in a sliding window fashion,
+     *   creating a histogram for each window
+     *
+     */
+    template <typename Dtype>
+    class SlidingHistogramLayer :
+    		public Layer<Dtype>
+    {
+    	protected:
+    		//----------------------------------
+    		virtual void
+			Forward_cpu(
+					const vector<Blob<Dtype>*>& bottom,
+    				const vector<Blob<Dtype>*>& top);
+    		//----------------------------------
+    		virtual void
+			Backward_cpu(
+					const vector<Blob<Dtype>*>& top,
+					const vector<bool>& propagate_down,
+					const vector<Blob<Dtype>*>& bottom);
+    		//----------------------------------
+    		Dtype m_min;
+    		Dtype m_max;
+    		int m_bins;
+    		int m_kernel_h_, m_kernel_w_;
+    		int m_stride_h_, m_stride_w_;
+    		int m_channels_;
+    		int m_height_, m_width_;
+    		int m_result_height_, m_result_width_;
+    		Dtype m_diffuseValue;
+    		Dtype m_multiplier;
+    		// holds indices of mapping bottom value to top bin
+    		Blob<int> m_idx_;
+    		Blob<int> m_distance;
+    		//----------------------------------
+    	public:
+    		explicit SlidingHistogramLayer(const LayerParameter& param)
+    			: Layer<Dtype>(param)
+			{
+    			m_bins = 0;
+    			m_min = Dtype(0);
+    			m_max = Dtype(0);
+    			m_kernel_h_ = 0;
+    			m_kernel_w_ = 0;
+    			m_stride_h_ = 0;
+    			m_stride_w_ = 0;
+    			m_height_ = 0;
+    			m_width_ = 0;
+    			m_channels_ = 0;
+    			m_result_height_ = 0;
+    			m_result_width_ = 0;
+    			m_diffuseValue = Dtype(0);
+    			m_multiplier = Dtype(0);
+			}
+    		//----------------------------------
+    		virtual ~SlidingHistogramLayer(){}
+    		//----------------------------------
+    		virtual void
+			LayerSetUp(
+				const vector<Blob<Dtype>*>& bottom,
+				const vector<Blob<Dtype>*>& top);
+    		//----------------------------------
+    		virtual void Reshape(
+    			const vector<Blob<Dtype>*>& bottom,
+				const vector<Blob<Dtype>*>& top);
+
+    		//----------------------------------
+    		virtual inline const char*
+			type() const { return "SlidingHistogram"; }
+    		//----------------------------------
+    		virtual inline int ExactNumBottomBlobs() const { return 1; }
+    		//----------------------------------
+    		virtual inline int MinTopBlobs() const { return 1; }
+    		//----------------------------------
+    		virtual inline int MaxTopBlobs() const { return 1; }
+    		//----------------------------------
+    		virtual inline int
+			bin_of_value(const Dtype value) const
+    		{
+    			if (value >= m_max)
+    			{
+    				return m_bins-1;
+    			}
+
+    			if (value <= m_min)
+    			{
+    				return 0;
+    			}
+
+    			return int(round(
+    					(value - m_min) * m_multiplier));
+    		}
+    		//----------------------------------
+    };
+
+    //==================================================================
 }  // namespace caffe
 
 #endif  // CAFFE_YODI_LAYERS_HPP_
