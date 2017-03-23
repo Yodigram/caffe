@@ -290,7 +290,7 @@ namespace caffe
     				return 0;
     			}
 
-    			return int(round(
+    			return int(floor(
     					(value - m_min) * m_multiplier));
     		}
     		//----------------------------------
