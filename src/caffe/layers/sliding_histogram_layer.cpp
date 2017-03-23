@@ -97,7 +97,7 @@ namespace caffe
 	    	m_diffuseValue = params.diffuse();
 	    }
 	    //----------------------------------------
-	    m_multiplier = (Dtype(m_bins - 1) / (m_max - m_min));
+	    m_multiplier = (Dtype(m_bins) / (m_max - m_min));
 	}
 	//==================================================================
 
@@ -159,9 +159,12 @@ namespace caffe
 		#pragma omp parallel for
 		for (int n = 0; n < num; ++n)
 		{
-			// add this value to bins sto they dont need to be normalized
-			const Dtype value = (Dtype(1) - Dtype(m_bins) * m_diffuseValue) / Dtype(m_kernel_w_ * m_kernel_h_);
-
+			//--------------------
+			// add this value to bins so we dont need to passes to normalize
+			const Dtype value =
+					(Dtype(1) - Dtype(m_bins) * m_diffuseValue) /
+					Dtype(m_kernel_w_ * m_kernel_h_);
+			//--------------------
 			for (int c = 0; c < m_channels_; ++c)
 			{
 				const int offset = bottom_blob->offset_unchecked(n, c, 0, 0);
@@ -177,6 +180,7 @@ namespace caffe
 						const int wstart = std::max(pw * m_stride_w_, 0);
 						const int wend = std::min(wstart + m_kernel_w_, m_width_);
 						const int center_w = (wstart + wend) / 2;
+						Dtype sum = (hend - hstart) * (wstart - wend) * m_diffuseValue;
 
 						//--------------------
 						// run window and fill histogram
@@ -203,9 +207,18 @@ namespace caffe
 									index_data[bottom_index] = top_index;
 								}
 
+								sum += value;
 								top_data[top_index] += value;
 							}
 						}
+
+						//--------------------
+						// normalize histogram
+						for (int b = 0; b < m_bins; ++b)
+						{
+							top_data[top_blob->offset_unchecked(n, c * m_bins + b, ph, pw)] /= sum;
+						}
+						//--------------------
 					}
 				}
 			}
@@ -232,7 +245,6 @@ namespace caffe
 		const Dtype* top_diff = top_blob->cpu_diff();
 		const int* index_data = m_idx_.cpu_data();
 		const int num = bottom_blob->num();
-		const Dtype multiplier = m_height_ * m_width_ * m_channels_;
 
 		#pragma omp parallel for
 		for (int n = 0; n < num; ++n)
@@ -251,7 +263,7 @@ namespace caffe
 								std::max(
 										Dtype(top_data[index] * m_kernel_h_ * m_kernel_w_),
 										Dtype(1));
-						bottom_diff[bottom_index] = (top_diff[index] / multiplier) / counter;
+						bottom_diff[bottom_index] = top_diff[index] / counter;
 					}
 				}
 			}
