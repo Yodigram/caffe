@@ -86,7 +86,7 @@ namespace caffe
 			m_rotateMaxAngle = params.rotate_max_angle();
 		}
 
-		CHECK(m_rotateMinAngle < m_rotateMaxAngle)
+		CHECK(m_rotateMinAngle <= m_rotateMaxAngle)
 			<< "rotate_min_angle should be < than rotate_max_angle";
 
 		if (params.has_rotate_fill_value())
