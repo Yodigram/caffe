@@ -131,6 +131,7 @@ namespace caffe
                 m_valueCapMax = Dtype(0);
                 m_maxoutPassthroughProbabilityIteration = 0;
                 m_iteration = 0;
+                m_passthroughProbability = 1.0f;
 			}
             //----------------------------------
             virtual ~VisionTransformationLayer(){}
@@ -293,6 +294,66 @@ namespace caffe
     			return int(floor(
     					(value - m_min) * m_multiplier));
     		}
+    		//----------------------------------
+    };
+
+    //==================================================================
+
+    /**
+     * @brief Quantizes the input
+     *
+     */
+    template <typename Dtype>
+    class QuantizeLayer :
+    		public NeuronLayer<Dtype>
+    {
+    	protected:
+    		//----------------------------------
+    		virtual void
+			Forward_cpu(
+					const vector<Blob<Dtype>*>& bottom,
+    				const vector<Blob<Dtype>*>& top);
+    		//----------------------------------
+    		virtual void
+			Backward_cpu(
+					const vector<Blob<Dtype>*>& top,
+					const vector<bool>& propagate_down,
+					const vector<Blob<Dtype>*>& bottom);
+    		//----------------------------------
+    		Dtype m_min;
+    		Dtype m_max;
+    		Dtype m_div;
+    		int m_bins;
+    		//----------------------------------
+    	public:
+    		explicit QuantizeLayer(const LayerParameter& param)
+    			: NeuronLayer<Dtype>(param)
+			{
+    			m_bins = 8;
+    			m_min = Dtype(-1);
+    			m_max = Dtype(+1);
+			}
+    		//----------------------------------
+    		virtual ~QuantizeLayer(){}
+    		//----------------------------------
+    		virtual void
+			LayerSetUp(
+				const vector<Blob<Dtype>*>& bottom,
+				const vector<Blob<Dtype>*>& top);
+    		//----------------------------------
+    		virtual void Reshape(
+    			const vector<Blob<Dtype>*>& bottom,
+				const vector<Blob<Dtype>*>& top);
+
+    		//----------------------------------
+    		virtual inline const char*
+			type() const { return "Quantize"; }
+    		//----------------------------------
+    		virtual inline int ExactNumBottomBlobs() const { return 1; }
+    		//----------------------------------
+    		virtual inline int MinTopBlobs() const { return 1; }
+    		//----------------------------------
+    		virtual inline int MaxTopBlobs() const { return 1; }
     		//----------------------------------
     };
 

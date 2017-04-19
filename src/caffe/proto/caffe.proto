@@ -423,6 +423,7 @@ message LayerParameter {
   optional WindowDataParameter window_data_param = 129;
   optional VisionTransformationParameter vision_transformation_param = 147;
   optional SlidingHistogramParameter sliding_histogram_param = 148;
+  optional QuantizeParameter quantize_param = 149;
 }
 
 // Message that stores parameters used to apply transformation
@@ -1290,6 +1291,12 @@ message SlidingHistogramParameter {
   optional float min = 8 [default = -1];
   optional float max = 9 [default = 1];
   optional float diffuse = 10 [default = 0];
+}
+
+message QuantizeParameter {
+  optional uint32 bins = 1 [default = 32];
+  optional float min = 2 [default = -1];
+  optional float max = 3 [default = 1];
 }
 
 // DEPRECATED: use LayerParameter.
