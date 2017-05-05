@@ -229,6 +229,7 @@ namespace caffe
     		int m_kernel_h_, m_kernel_w_;
     		int m_stride_h_, m_stride_w_;
     		int m_channels_;
+    		int m_top_channels_;
     		int m_height_, m_width_;
     		int m_result_height_, m_result_width_;
     		Dtype m_diffuseValue;
@@ -251,6 +252,7 @@ namespace caffe
     			m_height_ = 0;
     			m_width_ = 0;
     			m_channels_ = 0;
+    			m_top_channels_ = 0;
     			m_result_height_ = 0;
     			m_result_width_ = 0;
     			m_diffuseValue = Dtype(0);
