@@ -26,6 +26,7 @@ namespace caffe
 			bins : 32
 			min : -1
 			max : 1
+			flatten : true
 		  }
 		}
 	*/
@@ -98,6 +99,12 @@ namespace caffe
 	    }
 	    //----------------------------------------
 	    m_multiplier = (Dtype(m_bins) / (m_max - m_min));
+	    //----------------------------------------
+	    if (params.has_flatten())
+	    {
+	    	m_flatten = params.flatten();
+	    }
+	    //----------------------------------------
 	}
 	//==================================================================
 
@@ -116,8 +123,8 @@ namespace caffe
 				m_height_ - m_kernel_h_) / m_stride_h_)) + 1;
 		m_result_width_ = static_cast<int>(ceil(static_cast<float>(
 				m_width_ - m_kernel_w_) / m_stride_w_)) + 1;
-
-		m_top_channels_ = m_channels_ * m_bins;
+		m_top_channels_ =
+				(m_flatten == true) ? m_bins : m_channels_ * m_bins;
 
 		top[0]->Reshape(
 				bottom[0]->num(),
@@ -137,14 +144,10 @@ namespace caffe
 				m_result_height_,
 				m_result_width_);
 
-
 	    //-------------------------------------------------
 	    // set distance and index precalculated blobs
 	    //-------------------------------------------------
-		Blob<Dtype>* bottom_blob = bottom[0];
-		const Dtype* bottom_data = bottom_blob->cpu_data();
-		Blob<Dtype>* top_blob = top[0];
-		const int num = bottom_blob->num();
+
 		// zero out top and indices
 		int* index_data = m_idx_.mutable_cpu_data();
 		int* distance_data = m_distance.mutable_cpu_data();
@@ -215,6 +218,7 @@ namespace caffe
 			for (int c = 0; c < m_channels_; ++c)
 			{
 				const int offset = bottom_blob->offset_unchecked(n, c, 0, 0);
+				const int channelOffset = (m_flatten == true) ? 0 : (c * m_bins);
 
 				for (int ph = 0; ph < m_result_height_; ++ph)
 				{
@@ -243,7 +247,7 @@ namespace caffe
 								const int top_index =
 										top_blob->offset_unchecked(
 												n,
-												c * m_bins + bin,
+												channelOffset + bin,
 												ph,
 												pw);
 								top_data[top_index] += value;
@@ -279,32 +283,69 @@ namespace caffe
 		// zero out diff
 		caffe_set(bottom_blob->count(), Dtype(0), bottom_diff);
 
-		#pragma omp parallel for
-		for (int n = 0; n < num; ++n)
+		if (m_flatten == true)
 		{
-			for (int c = 0; c < m_top_channels_; ++c)
+			#pragma omp parallel for
+			for (int n = 0; n < num; ++n)
 			{
-				const int top_offset =
-						top_blob->offset_unchecked(
-								n,
-								c,
-								0,
-								0);
-				const int bottom_offset =
-						bottom_blob->offset_unchecked(
-								n,
-								c / m_bins,
-								0,
-								0);
-
-				for (int h = 0; h < m_result_height_; ++h)
+				for (int c = 0; c < m_top_channels_; ++c)
 				{
-					for (int w = 0; w < m_result_width_; ++w)
+					const int top_offset =
+							top_blob->offset_unchecked(
+									n,
+									c,
+									0,
+									0);
+
+					for (int h = 0; h < m_result_height_; ++h)
 					{
-						const int tmpIndex = h * m_result_width_ + w;
-						const int top_index = top_offset + tmpIndex;
-						const int bottom_index = bottom_offset + index_data[tmpIndex];
-						bottom_diff[bottom_index] += top_diff[top_index];
+						for (int w = 0; w < m_result_width_; ++w)
+						{
+							const int tmpIndex = h * m_result_width_ + w;
+							const int top_index = top_offset + tmpIndex;
+							Dtype value = top_diff[top_index] / Dtype(m_bins);
+
+							for (int i = 0; i < m_bins; ++i)
+							{
+								const int bottom_index =
+										bottom_blob->offset_unchecked(n,i,0,0) +
+										index_data[tmpIndex];
+								bottom_diff[bottom_index] += value;
+							}
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			#pragma omp parallel for
+			for (int n = 0; n < num; ++n)
+			{
+				for (int c = 0; c < m_top_channels_; ++c)
+				{
+					const int top_offset =
+							top_blob->offset_unchecked(
+									n,
+									c,
+									0,
+									0);
+					const int bottom_offset =
+							bottom_blob->offset_unchecked(
+									n,
+									c / m_bins,
+									0,
+									0);
+
+					for (int h = 0; h < m_result_height_; ++h)
+					{
+						for (int w = 0; w < m_result_width_; ++w)
+						{
+							const int tmpIndex = h * m_result_width_ + w;
+							const int top_index = top_offset + tmpIndex;
+							const int bottom_index = bottom_offset + index_data[tmpIndex];
+							bottom_diff[bottom_index] += top_diff[top_index];
+						}
 					}
 				}
 			}
