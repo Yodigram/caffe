@@ -234,6 +234,7 @@ namespace caffe
     		int m_result_height_, m_result_width_;
     		Dtype m_diffuseValue;
     		Dtype m_multiplier;
+    		bool m_flatten;
     		// holds indices of mapping bottom value to top bin
     		Blob<int> m_idx_;
     		Blob<int> m_distance;
@@ -257,6 +258,7 @@ namespace caffe
     			m_result_width_ = 0;
     			m_diffuseValue = Dtype(0);
     			m_multiplier = Dtype(0);
+    			m_flatten = false;
 			}
     		//----------------------------------
     		virtual ~SlidingHistogramLayer(){}
