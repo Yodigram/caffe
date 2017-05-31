@@ -154,7 +154,7 @@ namespace caffe
 		cv::Size size(width, height);
 		cv::Point2f center(width / 2.0, height / 2.0);
 
-		//--------- passthrough distrivution
+		//--------- passthrough distribution
 		std::vector<int> passthroughs(numberOfBlobs, 0);
 
 		caffe_rng_bernoulli<float>(
@@ -218,11 +218,9 @@ namespace caffe
 					scales.data());
 		}
 
-		m_iteration++;
-
 		//--------- iterate over images in blob
 		#pragma omp parallel for
-		for (int n = 0; n < numberOfBlobs; n++)
+		for (int n = 0; n < numberOfBlobs; ++n)
 		{
 			const bool passthrough = passthroughs[n] > 0;
 
@@ -290,11 +288,12 @@ namespace caffe
 				}
 
 				//----- iterate over channels
-				for (int c = 0; c < channels; c++)
+				for (int c = 0; c < channels; ++c)
 				{
 					const Dtype multiplierColor = multipliersColor[n * channels + c];
 					const Dtype multiplierTotal = multiplier * multiplierColor;
 					const int offset = bottomBlob->offset(n, c, 0, 0);
+
 					cv::Mat bottomSlice(
 							height,
 							width,
