@@ -130,7 +130,6 @@ namespace caffe
                 m_valueCapMin = Dtype(0);
                 m_valueCapMax = Dtype(0);
                 m_maxoutPassthroughProbabilityIteration = 0;
-                m_iteration = 0;
                 m_passthroughProbability = 1.0f;
 			}
             //----------------------------------
@@ -195,8 +194,6 @@ namespace caffe
             // indicates at which iteration the passthrough probabilit
             // reaches its high
             int m_maxoutPassthroughProbabilityIteration;
-
-            int m_iteration;
     };
 
     //==================================================================
