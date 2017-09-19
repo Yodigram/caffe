@@ -51,6 +51,8 @@ inline void MakeTempFilename(string* temp_filename) {
 
 bool ReadProtoFromTextFile(const char* filename, Message* proto);
 
+bool ReadProtoFromTextFile(std::ifstream& inputStream, Message* proto);
+
 inline bool ReadProtoFromTextFile(const string& filename, Message* proto) {
   return ReadProtoFromTextFile(filename.c_str(), proto);
 }
@@ -69,6 +71,8 @@ inline void WriteProtoToTextFile(const Message& proto, const string& filename) {
 }
 
 bool ReadProtoFromBinaryFile(const char* filename, Message* proto);
+
+bool ReadProtoFromBinaryFile(std::ifstream& inputStream, Message* proto);
 
 inline bool ReadProtoFromBinaryFile(const string& filename, Message* proto) {
   return ReadProtoFromBinaryFile(filename.c_str(), proto);

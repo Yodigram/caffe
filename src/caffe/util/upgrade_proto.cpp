@@ -97,6 +97,21 @@ void ReadNetParamsFromBinaryFileOrDie(const string& param_file,
   UpgradeNetAsNeeded(param_file, param);
 }
 
+void ReadNetParamsFromTextFileOrDie(std::ifstream& inputStream,
+                                      NetParameter* param)
+{
+	  CHECK(ReadProtoFromTextFile(inputStream, param))
+	      << "Failed to parse NetParameter stream";
+	  UpgradeNetAsNeeded(std::string("input-stream"), param);
+}
+
+void ReadNetParamsFromBinaryFileOrDie(std::ifstream& inputStream,
+                                      NetParameter* param) {
+  CHECK(ReadProtoFromBinaryFile(inputStream, param))
+      << "Failed to parse NetParameter stream" ;
+  UpgradeNetAsNeeded(std::string("input-stream"), param);
+}
+
 bool NetNeedsV0ToV1Upgrade(const NetParameter& net_param) {
   for (int i = 0; i < net_param.layers_size(); ++i) {
     if (net_param.layers(i).has_layer()) {
