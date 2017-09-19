@@ -2,6 +2,7 @@
 #define CAFFE_UTIL_UPGRADE_PROTO_H_
 
 #include <string>
+#include <fstream>
 
 #include "caffe/proto/caffe.pb.h"
 
@@ -16,8 +17,11 @@ bool UpgradeNetAsNeeded(const string& param_file, NetParameter* param);
 // Read parameters from a file into a NetParameter proto message.
 void ReadNetParamsFromTextFileOrDie(const string& param_file,
                                     NetParameter* param);
+
 void ReadNetParamsFromBinaryFileOrDie(const string& param_file,
                                       NetParameter* param);
+
+void ReadNetParamsFromTextFileOrDie(std::ifstream& inputStream, NetParameter* param);
 
 // Return true iff any layer contains parameters specified using
 // deprecated V0LayerParameter.
