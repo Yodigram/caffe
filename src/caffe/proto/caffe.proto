@@ -424,6 +424,7 @@ message LayerParameter {
   optional VisionTransformationParameter vision_transformation_param = 147;
   optional SlidingHistogramParameter sliding_histogram_param = 148;
   optional QuantizeParameter quantize_param = 149;
+  optional DataDrivenDropoutParameter data_driven_dropout_param = 150;
 }
 
 // Message that stores parameters used to apply transformation
@@ -1298,6 +1299,18 @@ message QuantizeParameter {
   optional uint32 bins = 1 [default = 32];
   optional float min = 2 [default = -1];
   optional float max = 3 [default = 1];
+}
+
+message DataDrivenDropoutParameter {
+  optional float topk = 1 [default = 1.0]; // keep % of top value
+  enum FilterMethod {
+    FULL = 0;        // top k from all channels
+    CHANNELWISE = 1; // top k for each channel
+    CHANNELWIDE = 2; // top k channels 
+  }
+  optional FilterMethod filter_method = 2 [default = FULL];
+  optional bool absolute_value = 3 [default = false]; // consider absolute value when filtering
+  optional float passthrough_probability = 4 [default = 0];
 }
 
 // DEPRECATED: use LayerParameter.

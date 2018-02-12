@@ -345,7 +345,6 @@ namespace caffe
     		virtual void Reshape(
     			const vector<Blob<Dtype>*>& bottom,
 				const vector<Blob<Dtype>*>& top);
-
     		//----------------------------------
     		virtual inline const char*
 			type() const { return "Quantize"; }
@@ -357,6 +356,69 @@ namespace caffe
     		virtual inline int MaxTopBlobs() const { return 1; }
     		//----------------------------------
     };
+
+	//=========================================================
+
+	template<typename Dtype>
+	class DataDrivenDropoutLayer :
+			public NeuronLayer<Dtype>
+	{
+		protected:
+			//-----------------------------------------
+			virtual void
+			Forward_cpu(
+					const vector<Blob < Dtype> *> &bottom,
+					const vector<Blob < Dtype> *> &top);
+			//-----------------------------------------
+			virtual void
+			Backward_cpu(
+					const vector<Blob < Dtype> *> &top,
+					const vector<bool> &propagate_down,
+					const vector<Blob < Dtype> *> &bottom);
+			//-----------------------------------------
+			// percentage to keep [0, 1]
+			float m_topk;
+			// if true work on channels else work on weights
+			DataDrivenDropoutParameter_FilterMethod m_filter_method;
+			// probability of passthrough the data
+			float m_passthrough_probability;
+			// true if output is passed, false otherwise
+			Blob<int> m_mask;
+			// adjust scale based on dropout effect
+			Dtype m_scale;
+			//-----------------------------------------
+    	public:
+			//-----------------------------------------
+			explicit DataDrivenDropoutLayer(const LayerParameter &param)
+					: NeuronLayer<Dtype>(param)
+			{
+				m_topk = 1.0;
+				m_scale = Dtype(1);
+				m_passthrough_probability = 0.0f;
+				m_filter_method = DataDrivenDropoutParameter_FilterMethod::DataDrivenDropoutParameter_FilterMethod_FULL;
+			}
+			//-----------------------------------------
+			virtual void
+			LayerSetUp(const vector<Blob < Dtype> *> &bottom,
+					const vector<Blob < Dtype> *> &top);
+			//-----------------------------------------
+			virtual void
+			Reshape(const vector<Blob < Dtype> *> &bottom,
+					const vector<Blob < Dtype> *> &top);
+			//-----------------------------------------
+			virtual inline const char *type() const
+			{ return "DataDrivenDropout"; }
+			//-----------------------------------------
+			virtual inline int ExactNumBottomBlobs() const
+			{ return 1; }
+			//-----------------------------------------
+			virtual inline int MinTopBlobs() const
+			{ return 1; }
+			//-----------------------------------------
+			virtual inline int MaxTopBlobs() const
+			{ return 1; }
+			//-----------------------------------------
+	};
 
     //==================================================================
 }  // namespace caffe
