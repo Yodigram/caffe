@@ -378,14 +378,18 @@ namespace caffe
 			//-----------------------------------------
 			// percentage to keep [0, 1]
 			float m_topk;
+			// if true use absolute value when filtering
+			bool m_absoluteValue;
 			// if true work on channels else work on weights
 			DataDrivenDropoutParameter_FilterMethod m_filter_method;
 			// probability of passthrough the data
 			float m_passthrough_probability;
 			// true if output is passed, false otherwise
-			Blob<int> m_mask;
+			Blob<Dtype> m_mask;
 			// adjust scale based on dropout effect
 			Dtype m_scale;
+			// when not in the top_k replace with this value
+			Dtype m_cutoff_value;
 			//-----------------------------------------
     	public:
 			//-----------------------------------------
@@ -394,6 +398,7 @@ namespace caffe
 			{
 				m_topk = 1.0;
 				m_scale = Dtype(1);
+				m_absoluteValue = false;
 				m_passthrough_probability = 0.0f;
 				m_filter_method = DataDrivenDropoutParameter_FilterMethod::DataDrivenDropoutParameter_FilterMethod_FULL;
 			}

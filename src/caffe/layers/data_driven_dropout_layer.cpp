@@ -26,6 +26,7 @@ namespace caffe
 		  data_driven_dropout_param {
 			topk: 0.1
 			filter_method: FULL
+			absolute_value: true
 			passthrough_probability: 0.0
 		  }
 		  include {
@@ -53,6 +54,17 @@ namespace caffe
 			m_topk = params.topk();
 			CHECK(m_topk > 0) << "m_topk should be > 0";
 			CHECK(m_topk <= 1) << "m_topk should be <= 1";
+			m_scale *= Dtype(1) / Dtype(m_topk);
+		}
+
+		if (params.has_cutoff_value() == true)
+		{
+			m_cutoff_value = params.cutoff_value();
+		}
+
+		if (params.has_absolute_value() == true)
+		{
+			m_absoluteValue = params.absolute_value();
 		}
 
 		if (params.has_filter_method() == true)
@@ -91,7 +103,7 @@ namespace caffe
 		Blob<Dtype>* bottom_blob = bottom[0];
 		const Dtype* bottom_data = bottom_blob->cpu_data();
 		Dtype* top_data = top_blob->mutable_cpu_data();
-		int* mask_data = m_mask.mutable_cpu_data();
+		Dtype* mask_data = m_mask.mutable_cpu_data();
 
 		const int no_blobs = bottom_blob->num();
 		const int width  = bottom_blob->width();
@@ -99,11 +111,15 @@ namespace caffe
 		const int channels = bottom_blob->channels();
 
 		//--------- passthrough distribution
-		std::vector<int> passthroughs(no_blobs, 0);
+		std::vector<int> passthroughs;
+		const bool calculate_passthrough =
+				this->phase_ == TRAIN &&
+		    	m_passthrough_probability > 0.0f;
 
-	    if (this->phase_ == TRAIN &&
-	    	m_passthrough_probability > 0.0f)
+	    if (calculate_passthrough == true)
 	    {
+	    	passthroughs.resize(no_blobs);
+
 			caffe_rng_bernoulli<float>(
 					no_blobs,
 					m_passthrough_probability,
@@ -114,13 +130,14 @@ namespace caffe
 		#pragma omp parallel for
 		for (int n = 0; n < no_blobs; ++n)
 		{
-			if (this->phase_ == TRAIN &&
-				m_passthrough_probability > 0.0f)
+			const bool absolute = m_absoluteValue;
+
+			if (calculate_passthrough == true)
 			{
-				const int bottom_offset = bottom_blob->offset(n, 0, 0, 0);
-				const int top_offset = top_blob->offset(n, 0, 0, 0);
-				const int mask_offset = m_mask.offset(n, 0, 0, 0);
 				const int no_elements = width * height * channels;
+				const int mask_offset = m_mask.offset(n, 0, 0, 0);
+				const int top_offset = top_blob->offset(n, 0, 0, 0);
+				const int bottom_offset = bottom_blob->offset(n, 0, 0, 0);
 
 				if (passthroughs[n] == true)
 				{
@@ -128,32 +145,34 @@ namespace caffe
 							no_elements,
 							bottom_data + bottom_offset,
 							top_data + top_offset);
-					caffe_set((int)no_elements, 1, mask_data + mask_offset);
+					caffe_set((int)no_elements, Dtype(1), mask_data + mask_offset);
 					continue;
 				}
 			}
 
+			//----------------------------- CHANNELWISE
 			if (m_filter_method == DataDrivenDropoutParameter_FilterMethod_CHANNELWISE)
 			{
 				// go through the channels and for each one keep only top_k % of the top
 				for (int c = 0; c < channels; ++c)
 				{
-					const int top_offset = top_blob->offset(n, c, 0, 0);
-					const int mask_offset = m_mask.offset(n, c, 0, 0);
-					const int bottom_offset = bottom_blob->offset(n, c, 0, 0);
 					const int no_elements = width * height;
+					const int mask_offset = m_mask.offset(n, c, 0, 0);
+					const int top_offset = top_blob->offset(n, c, 0, 0);
+					const int bottom_offset = bottom_blob->offset(n, c, 0, 0);
 					const int no_top_k_elements = std::max(1, int(std::round(float(no_elements) * m_topk)));
 
 					// find top k-th element of blob
 					Dtype kth_top_element = 0;
 					{
 						boost::heap::priority_queue<
-							float,
-							boost::heap::compare<std::greater<float>>> top_k_queue;
+							Dtype,
+							boost::heap::compare< std::greater< Dtype > > > top_k_queue;
 
 						for (int i = 0; i < no_elements; ++i)
 						{
-							Dtype d = bottom_data[top_offset + i];
+							const Dtype b = bottom_data[bottom_offset + i];
+							const Dtype d = absolute ? std::abs(b) : b;
 							const int size = top_k_queue.size();
 
 							if (size < no_top_k_elements)
@@ -173,37 +192,97 @@ namespace caffe
 					// mask all elements <= kth_top_element
 					for (int i = 0; i < no_elements; ++i)
 					{
-						const Dtype d = bottom_data[bottom_offset + i];
+						const Dtype b = bottom_data[bottom_offset + i];
+						const Dtype d = absolute ? std::abs(b) : b;
 						const bool pass = d >= kth_top_element;
-						const int m = pass ? 1 : 0;
+						const Dtype m = pass ? m_scale : m_cutoff_value;
 						mask_data[mask_offset + i] = m;
-						top_data[top_offset + i] = Dtype(m * d * m_scale);
+						top_data[top_offset + i] = Dtype(m * d);
 					}
 				}
 			}
+			//----------------------------- CHANNELWIDE
 			else if (m_filter_method == DataDrivenDropoutParameter_FilterMethod_CHANNELWIDE)
 			{
+				// go through the channels, count each one's value and keep only the top_k% channels
+				const int no_elements = width * height;
+				std::vector<Dtype> values(channels, 0);
+				const int no_top_k_elements = std::max(1, int(std::round(float(channels) * m_topk)));
 
+				for (int c = 0; c < channels; ++c)
+				{
+					const int bottom_offset = bottom_blob->offset(n, c, 0, 0);
+
+					for (int i = 0; i < no_elements; ++i)
+					{
+						const Dtype b = bottom_data[bottom_offset + i];
+						const Dtype d = absolute ? std::abs(b) : b;
+						values[c] += d;
+					}
+				}
+
+				Dtype kth_top_element = 0;
+				{
+					boost::heap::priority_queue<
+						Dtype,
+						boost::heap::compare< std::greater< Dtype > > > top_k_queue;
+
+					for (int c = 0; c < channels; ++c)
+					{
+						const Dtype d = values[c];
+						const int size = top_k_queue.size();
+
+						if (size < no_top_k_elements)
+						{
+							top_k_queue.push(d);
+						}
+						else if (d >= top_k_queue.top())
+						{
+							top_k_queue.pop();
+							top_k_queue.push(d);
+						}
+					}
+
+					kth_top_element = top_k_queue.top();
+				}
+
+
+				for (int c = 0; c < channels; ++c)
+				{
+					const bool pass = values[c] >= kth_top_element;
+					const Dtype m = pass ? m_scale : m_cutoff_value;
+					const int mask_offset = m_mask.offset(n, c, 0, 0);
+					const int top_offset = top_blob->offset(n, c, 0, 0);
+					const int bottom_offset = bottom_blob->offset(n, c, 0, 0);
+
+					for (int i = 0; i < no_elements; ++i)
+					{
+						mask_data[mask_offset + i] = m;
+						top_data[top_offset + i] = m * bottom_data[bottom_offset + i];
+					}
+				}
 			}
+			//----------------------------- FULL
 			else if (m_filter_method == DataDrivenDropoutParameter_FilterMethod_FULL)
 			{
 				// go through all the values and one keep only top_k % of the top
-				const int top_offset = top_blob->offset(n, 0, 0, 0);
-				const int mask_offset = m_mask.offset(n, 0, 0, 0);
-				const int bottom_offset = bottom_blob->offset(n, 0, 0, 0);
 				const int no_elements = width * height * channels;
+				const int mask_offset = m_mask.offset(n, 0, 0, 0);
+				const int top_offset = top_blob->offset(n, 0, 0, 0);
+				const int bottom_offset = bottom_blob->offset(n, 0, 0, 0);
 				const int no_top_k_elements = std::max(1, int(std::round(float(no_elements) * m_topk)));
 
 				// find top k-th element of blob
 				Dtype kth_top_element = 0;
 				{
 					boost::heap::priority_queue<
-						float,
-						boost::heap::compare<std::greater<float>>> top_k_queue;
+						Dtype,
+						boost::heap::compare< std::greater< Dtype > > > top_k_queue;
 
 					for (int i = 0; i < no_elements; ++i)
 					{
-						Dtype d = bottom_data[top_offset + i];
+						const Dtype b = bottom_data[bottom_offset + i];
+						const Dtype d = absolute ? std::abs(b) : b;
 						const int size = top_k_queue.size();
 
 						if (size < no_top_k_elements)
@@ -223,11 +302,12 @@ namespace caffe
 				// mask all elements <= kth_top_element
 				for (int i = 0; i < no_elements; ++i)
 				{
-					const Dtype d = bottom_data[bottom_offset + i];
+					const Dtype b = bottom_data[bottom_offset + i];
+					const Dtype d = absolute ? std::abs(b) : b;
 					const bool pass = d >= kth_top_element;
-					const int m = pass ? 1 : 0;
+					const Dtype m = pass ? m_scale : m_cutoff_value;
 					mask_data[mask_offset + i] = m;
-					top_data[top_offset + i] = Dtype(m * d * m_scale);
+					top_data[top_offset + i] = Dtype(m * d);
 				}
 			}
 		}
@@ -251,7 +331,7 @@ namespace caffe
 
 	    if (this->phase_ == TRAIN)
 	    {
-	    	const int* mask = m_mask.cpu_data();
+	    	const Dtype* mask = m_mask.cpu_data();
 	    	const int count = bottom[0]->count();
 
 	    	#pragma omp parallel for

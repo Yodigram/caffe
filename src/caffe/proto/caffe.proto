@@ -1311,6 +1311,7 @@ message DataDrivenDropoutParameter {
   optional FilterMethod filter_method = 2 [default = FULL];
   optional bool absolute_value = 3 [default = false]; // consider absolute value when filtering
   optional float passthrough_probability = 4 [default = 0];
+  optional float cutoff_value = 5 [default = 0]; // when not in the top_k replace with this value
 }
 
 // DEPRECATED: use LayerParameter.
