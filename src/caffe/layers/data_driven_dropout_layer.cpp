@@ -1,11 +1,7 @@
-#include <vector>
 #include <omp.h>
 #include <cmath>
+#include <vector>
 #include <caffe/caffe.hpp>
-#include <opencv2/gpu/gpu.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 #include <boost/heap/pairing_heap.hpp>
 #include <boost/heap/priority_queue.hpp>
 
