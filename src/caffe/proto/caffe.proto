@@ -406,7 +406,7 @@ message LayerParameter {
   optional VisionTransformationParameter vision_transformation_param = 147;
   optional SlidingHistogramParameter sliding_histogram_param = 148;
   optional QuantizeParameter quantize_param = 149;
-  optional DataDrivenDropoutParameter data_driven_dropout_param = 150;
+  optional TopKParameter top_k_param = 150;
 }
 
 // Message that stores parameters used to apply transformation
@@ -1253,7 +1253,7 @@ message QuantizeParameter {
   optional float max = 3 [default = 1];
 }
 
-message DataDrivenDropoutParameter {
+message TopKParameter {
   optional float topk = 1 [default = 1.0]; // keep % of top value
   enum FilterMethod {
     FULL = 0;        // top k from all channels

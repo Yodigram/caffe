@@ -360,7 +360,7 @@ namespace caffe
 	//=========================================================
 
 	template<typename Dtype>
-	class DataDrivenDropoutLayer :
+	class TopKLayer :
 			public NeuronLayer<Dtype>
 	{
 		protected:
@@ -381,7 +381,7 @@ namespace caffe
 			// if true use absolute value when filtering
 			bool m_absoluteValue;
 			// if true work on channels else work on weights
-			DataDrivenDropoutParameter_FilterMethod m_filter_method;
+			TopKParameter_FilterMethod m_filter_method;
 			// probability of passthrough the data
 			float m_passthrough_probability;
 			// true if output is passed, false otherwise
@@ -393,14 +393,14 @@ namespace caffe
 			//-----------------------------------------
     	public:
 			//-----------------------------------------
-			explicit DataDrivenDropoutLayer(const LayerParameter &param)
+			explicit TopKLayer(const LayerParameter &param)
 					: NeuronLayer<Dtype>(param)
 			{
 				m_topk = 1.0;
 				m_scale = Dtype(1);
 				m_absoluteValue = false;
 				m_passthrough_probability = 0.0f;
-				m_filter_method = DataDrivenDropoutParameter_FilterMethod::DataDrivenDropoutParameter_FilterMethod_FULL;
+				m_filter_method = TopKParameter_FilterMethod::TopKParameter_FilterMethod_FULL;
 			}
 			//-----------------------------------------
 			virtual void
@@ -412,7 +412,7 @@ namespace caffe
 					const vector<Blob < Dtype> *> &top);
 			//-----------------------------------------
 			virtual inline const char *type() const
-			{ return "DataDrivenDropout"; }
+			{ return "TopK"; }
 			//-----------------------------------------
 			virtual inline int ExactNumBottomBlobs() const
 			{ return 1; }
