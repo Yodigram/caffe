@@ -15,11 +15,11 @@ namespace caffe
 	/* Example prototxt
 	 *
 		layer {
-		  name: "ddd_0"
-		  type: "DataDrivenDropout"
+		  name: "topk_0"
+		  type: "TopK"
 		  bottom: "data"
 		  top: "data"
-		  data_driven_dropout_param {
+		  topk_param {
 			topk: 0.1
 			filter_method: FULL
 			absolute_value: true
@@ -34,16 +34,16 @@ namespace caffe
 	//=========================================================
 
 	template<typename Dtype>
-	void DataDrivenDropoutLayer<Dtype>::LayerSetUp(
+	void TopKLayer<Dtype>::LayerSetUp(
 		const vector<Blob<Dtype> *>& bottom,
 		const vector<Blob<Dtype> *>& top)
 	{
 		NeuronLayer<Dtype>::LayerSetUp(bottom, top);
 
-	    CHECK(this->layer_param_.has_data_driven_dropout_param() == true)
-			<< "Data driven dropout parameters are missing";
+	    CHECK(this->layer_param_.has_top_k_param() == true)
+			<< "TopK parameters are missing";
 
-	    DataDrivenDropoutParameter params = this->layer_param_.data_driven_dropout_param();
+	    TopKParameter params = this->layer_param_.top_k_param();
 
 		if (params.has_topk() == true)
 		{
@@ -79,7 +79,7 @@ namespace caffe
 	//=========================================================
 
 	template<typename Dtype>
-	void DataDrivenDropoutLayer<Dtype>::Reshape(
+	void TopKLayer<Dtype>::Reshape(
 			const vector<Blob<Dtype> *>& bottom,
 			const vector<Blob<Dtype> *>& top)
 	{
@@ -91,7 +91,7 @@ namespace caffe
 	//=========================================================
 
 	template<typename Dtype>
-	void DataDrivenDropoutLayer<Dtype>::Forward_cpu(
+	void TopKLayer<Dtype>::Forward_cpu(
 			const vector<Blob<Dtype> *>& bottom,
 			const vector<Blob<Dtype> *>& top)
 	{
@@ -147,7 +147,7 @@ namespace caffe
 			}
 
 			//----------------------------- CHANNELWISE
-			if (m_filter_method == DataDrivenDropoutParameter_FilterMethod_CHANNELWISE)
+			if (m_filter_method == TopKParameter_FilterMethod_CHANNELWISE)
 			{
 				// go through the channels and for each one keep only top_k % of the top
 				for (int c = 0; c < channels; ++c)
@@ -198,7 +198,7 @@ namespace caffe
 				}
 			}
 			//----------------------------- CHANNELWIDE
-			else if (m_filter_method == DataDrivenDropoutParameter_FilterMethod_CHANNELWIDE)
+			else if (m_filter_method == TopKParameter_FilterMethod_CHANNELWIDE)
 			{
 				// go through the channels, count each one's value and keep only the top_k% channels
 				const int no_elements = width * height;
@@ -259,7 +259,7 @@ namespace caffe
 				}
 			}
 			//----------------------------- FULL
-			else if (m_filter_method == DataDrivenDropoutParameter_FilterMethod_FULL)
+			else if (m_filter_method == TopKParameter_FilterMethod_FULL)
 			{
 				// go through all the values and one keep only top_k % of the top
 				const int no_elements = width * height * channels;
@@ -312,7 +312,7 @@ namespace caffe
 	//==================================================================
 
 	template<typename Dtype>
-	void DataDrivenDropoutLayer<Dtype>::Backward_cpu(
+	void TopKLayer<Dtype>::Backward_cpu(
 			const vector<Blob<Dtype> *>& top,
 			const vector<bool>& propagate_down,
 			const vector<Blob<Dtype> *>& bottom)
@@ -323,18 +323,29 @@ namespace caffe
 		}
 
 		const Dtype* top_diff = top[0]->cpu_diff();
-		Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
+		Blob<Dtype>* bottom_blob = bottom[0];
+		Dtype* bottom_diff = bottom_blob->mutable_cpu_diff();
 
 	    if (this->phase_ == TRAIN)
 	    {
-	    	const Dtype* mask = m_mask.cpu_data();
-	    	const int count = bottom[0]->count();
+	    	const Dtype* mask_data = m_mask.cpu_data();
+	    	const int no_blobs = bottom_blob->num();
+			const int width  = bottom_blob->width();
+			const int height = bottom_blob->height();
+			const int channels = bottom_blob->channels();
+			const int no_elements = width * height * channels;
 
-	    	#pragma omp parallel for
-	    	for (int i = 0; i < count; ++i)
-	    	{
-	    		bottom_diff[i] = Dtype(top_diff[i] * mask[i] * m_scale);
-	    	}
+			#pragma omp parallel for
+			for (int n = 0; n < no_blobs; ++n)
+			{
+				const int offset = bottom_blob->offset(n, 0, 0, 0);
+
+		    	for (int c = 0; c < no_elements; ++c)
+		    	{
+		    		const int i = offset + c;
+		    		bottom_diff[i] = Dtype(top_diff[i] * mask_data[i] * m_scale);
+		    	}
+			}
 	    }
 	    else
 	    {
@@ -347,8 +358,8 @@ namespace caffe
 
 	//==================================================================
 
-	INSTANTIATE_CLASS(DataDrivenDropoutLayer);
-	REGISTER_LAYER_CLASS(DataDrivenDropout);
+	INSTANTIATE_CLASS(TopKLayer);
+	REGISTER_LAYER_CLASS(TopK);
 
 	//=========================================================
 }
