@@ -6,7 +6,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <fstream>
 
 #include "caffe/blob.hpp"
 #include "caffe/common.hpp"
@@ -24,13 +23,9 @@ namespace caffe {
 template <typename Dtype>
 class Net {
  public:
-  explicit Net(const NetParameter& param, const Net* root_net = NULL);
+  explicit Net(const NetParameter& param);
   explicit Net(const string& param_file, Phase phase,
-      const int level = 0, const vector<string>* stages = NULL,
-      const Net* root_net = NULL);
-  explicit Net(std::ifstream& streamFile, Phase phase,
-      const int level = 0, const vector<string>* stages = NULL,
-      const Net* root_net = NULL);
+      const int level = 0, const vector<string>* stages = NULL);
   virtual ~Net() {}
 
   /// @brief Initialize a network with a NetParameter.

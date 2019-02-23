@@ -29,15 +29,15 @@ namespace caffe
 			const vector<Blob<Dtype> *> &bottom,
 			const vector<Blob<Dtype> *> &top)
 	{
-		//const int nb0 = bottom[0]->num();
+		const int nb0 = bottom[0]->num();
 		const int wb0 = bottom[0]->width();
 		const int hb0 = bottom[0]->height();
 		const int cb0 = bottom[0]->channels();
 
-		//const int nb1 = bottom[1]->num();
+		const int nb1 = bottom[1]->num();
 		const int wb1 = bottom[1]->width();
 		const int hb1 = bottom[1]->height();
-		//const int cb1 = bottom[1]->channels();
+		const int cb1 = bottom[1]->channels();
 /*
 		LOG(INFO) << "wb0=" << wb0 <<", hb0=" << hb0 <<", cb0="<< cb0 << " nb0=" << nb0;
 		LOG(INFO) << "wb1=" << wb1 <<", hb1=" << hb1 <<", cb1="<< cb1 << " nb1=" << nb1;
@@ -106,16 +106,16 @@ namespace caffe
 		const int n1 = imBlob->num();
 		const int w1 = imBlob->width();
 		const int h1 = imBlob->height();
-		//const int c1 = imBlob->channels();
+		const int c1 = imBlob->channels();
 
-		//const int nb0 = bottom[0]->num();
-		//const int wb0 = bottom[0]->width();
-		//const int hb0 = bottom[0]->height();
-		//const int cb0 = bottom[0]->channels();
+		const int nb0 = bottom[0]->num();
+		const int wb0 = bottom[0]->width();
+		const int hb0 = bottom[0]->height();
+		const int cb0 = bottom[0]->channels();
 
-		//const int   nb1           = bottom[1]->num();
-		//const int   wb1           = bottom[1]->width();
-		//const int   hb1           = bottom[1]->height();
+		const int   nb1           = bottom[1]->num();
+		const int   wb1           = bottom[1]->width();
+		const int   hb1           = bottom[1]->height();
 		const int   cb1           = bottom[1]->channels();
 /*
 		LOG(INFO) << "wb0=" << wb0 <<", hb0=" << hb0 <<", cb0="<< cb0 << " nb0=" << nb0;

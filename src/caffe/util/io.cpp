@@ -41,14 +41,6 @@ bool ReadProtoFromTextFile(const char* filename, Message* proto) {
   return success;
 }
 
-bool ReadProtoFromTextFile(std::ifstream& inputStream, Message* proto) {
-  CHECK_EQ(inputStream.is_open(), true) << "File stream not open";
-  std::stringstream ss;
-  ss << inputStream.rdbuf();
-  bool success = google::protobuf::TextFormat::ParseFromString(ss.str(), proto);
-  return success;
-}
-
 void WriteProtoToTextFile(const Message& proto, const char* filename) {
   int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
   FileOutputStream* output = new FileOutputStream(fd);
@@ -63,28 +55,12 @@ bool ReadProtoFromBinaryFile(const char* filename, Message* proto) {
   ZeroCopyInputStream* raw_input = new FileInputStream(fd);
   CodedInputStream* coded_input = new CodedInputStream(raw_input);
   coded_input->SetTotalBytesLimit(kProtoReadBytesLimit, 536870912);
+
   bool success = proto->ParseFromCodedStream(coded_input);
+
   delete coded_input;
   delete raw_input;
   close(fd);
-  return success;
-}
-
-bool ReadProtoFromBinaryFile(std::ifstream& inputStream, Message* proto) {
-  CHECK_EQ(inputStream.is_open(), true) << "File stream not open";
-  std::vector<uint8_t> raw_input;
-  uint8_t byte = 0;
-  while(inputStream.good() == true)
-  {
-	  inputStream >> byte;
-	  raw_input.push_back(byte);
-  }
-  int size = (int)raw_input.size();
-  uint8_t* data_ptr = (uint8_t*)(&raw_input[0]);
-  CodedInputStream* coded_input = new CodedInputStream(data_ptr, size);
-  coded_input->SetTotalBytesLimit(kProtoReadBytesLimit, 536870912);
-  bool success = proto->ParseFromCodedStream(coded_input);
-  delete coded_input;
   return success;
 }
 
